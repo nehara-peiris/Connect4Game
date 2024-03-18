@@ -20,7 +20,7 @@ public class BoardImpl implements Board{
 
 
     public BoardImpl(BoardUI boardUI) {
-
+        System.out.println("check");
         this.boardUI = boardUI;
 
         for (int i=0;i<NUM_OF_COLS;i++){
