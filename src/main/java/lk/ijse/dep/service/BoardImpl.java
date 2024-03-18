@@ -20,7 +20,7 @@ public class BoardImpl implements Board{
 
 
     public BoardImpl(BoardUI boardUI) {
-        System.out.println("check");
+
         this.boardUI = boardUI;
 
         for (int i=0;i<NUM_OF_COLS;i++){
@@ -35,7 +35,7 @@ public class BoardImpl implements Board{
         pieces1 = pieces;
         pieces1 =copiedPieces;
         this.pieces = pieces1;
-        System.out.println("test");
+
     }
 
     @Override
