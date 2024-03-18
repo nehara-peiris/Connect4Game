@@ -35,6 +35,7 @@ public class BoardImpl implements Board{
         pieces1 = pieces;
         pieces1 =copiedPieces;
         this.pieces = pieces1;
+        System.out.println("test");
     }
 
     @Override
