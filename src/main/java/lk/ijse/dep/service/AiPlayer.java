@@ -1,97 +1,164 @@
 package lk.ijse.dep.service;
-import java.util.Random;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class AiPlayer extends Player {
-    private static final int NUM_SIMULATIONS = 1000;
-    private final Random random;
+    boolean trueOrFalse;
+    Winner winner;
+    Random random = new Random();
 
     public AiPlayer(Board board) {
         super(board);
-        random = new Random();
     }
-
 
     @Override
     public void movePiece(int col) {
-        col = monteCarloTreeSearch();
-        board.updateMove(col, Piece.GREEN);
-        board.getBoardUI().update(col, false);
-        Winner winner = board.findWinner();
+        Mcts mcts = new Mcts(board.getBoardImpl());
 
-        if (winner.getWinningPiece() != Piece.EMPTY) {
+        col = mcts.startMCTS();
+
+        board.updateMove(col,Piece.GREEN);
+        board.getBoardUI().update(col,false);
+        Winner winner = board.findWinner();
+        if (winner.getWinningPiece() != Piece.EMPTY){
             board.getBoardUI().notifyWinner(winner);
-        } else if (!board.existLegalMove()) {
+        } else if (!board.existLegalMoves()){
             board.getBoardUI().notifyWinner(new Winner(Piece.EMPTY));
         }
     }
 
+    static class Mcts {
+        private final BoardImpl board;
 
-    private int monteCarloTreeSearch() {
-        int[] scores = new int[Board.NUM_OF_COLS];
-        int maxScore = Integer.MIN_VALUE;
-        List<Integer> bestColumns = new ArrayList<>();
+        private final Piece AiID = Piece.GREEN;
 
-        for (int col = 0; col < Board.NUM_OF_COLS; col++) {
-            if (board.isLegalMove(col)) {
-                int row = board.findNextAvailableSpot(col);
-                scores[col] = simulate(col);
-                if (scores[col] > maxScore) {
-                    maxScore = scores[col];
-                    bestColumns.clear(); // Clear previous best columns
-                    bestColumns.add(col);
-                } else if (scores[col] == maxScore) {
-                    bestColumns.add(col);
-                }
-                board.updateMove(col, row, Piece.EMPTY); // Undo the move
-            }
+        private final Piece HumanID = Piece.BLUE;
+
+        public Mcts(BoardImpl board) {
+            this.board = board;
         }
 
-        return bestColumns.get(random.nextInt(bestColumns.size()));
-    }
+        public int startMCTS() {
+            int count = 0;
+            Node tree = new Node(board);
 
-    private int simulate(int col) {
-        int wins = 0;
-        for (int i = 0; i < AiPlayer.NUM_SIMULATIONS; i++) {
-            BoardImpl copyBoard = copyBoard();
-            int row = copyBoard.findNextAvailableSpot(col);
-            copyBoard.updateMove(col, row, Piece.GREEN);
+            while (count < 4000) {
+                count++;
+                Node promisingNode = selectPromisingNode(tree);
+                Node selected = promisingNode;
 
-            while (true) {
-                Winner winner = copyBoard.findWinner();
-                if (winner.getWinningPiece() == Piece.GREEN) {
-                    wins++;
-                    break;
-                } else if (winner.getWinningPiece() == Piece.BLUE || !copyBoard.existLegalMove()) {
-                    break;
+                if (selected.board.getStatus()) {
+                    selected = expandNodeAndReturnRandom(promisingNode);
                 }
 
-                int randomCol;
-                do {
-                    randomCol = random.nextInt(Board.NUM_OF_COLS);
-                } while (!copyBoard.isLegalMove(randomCol));
-
-                int randomRow = copyBoard.findNextAvailableSpot(randomCol);
-                copyBoard.updateMove(randomCol, randomRow, Piece.BLUE);
+                Piece resultPiece = simulateLightPlayout(selected);
+                backPropagation(resultPiece, selected);
             }
+
+            Node best = tree.getChildWithMaxScore();
+            return best.board.cols;
         }
-        return wins;
-    }
 
-    private BoardImpl copyBoard() {
-        int numRows = Board.NUM_OF_ROWS;
-        int numCols = Board.NUM_OF_COLS;
-        Piece[][] copiedPieces = new Piece[numCols][numRows];
+        private void backPropagation(Piece resultPiece, Node selected) {
+            Node node = selected;
 
-        for (int i = 0; i < numCols; i++) {
-            for (int j = 0; j < numRows; j++) {
-                copiedPieces[i][j] = board.getPieces()[i][j];
+            while (node != null){
+                node.visits++;
+                if (node.board.piece == resultPiece){
+                    node.score++;
+                }
+                node = node.parent;
             }
         }
 
-        return new BoardImpl(copiedPieces);
+        private Piece simulateLightPlayout(Node promisingNode) {
+            Node node = new Node(promisingNode.board);
+            node.parent = promisingNode.parent;
+            Winner winner = node.board.findWinner();
+
+            if (winner.getWinningPiece() == Piece.BLUE){
+                node.parent.score=Integer.MIN_VALUE;
+                return node.board.findWinner().getWinningPiece();
+            }
+
+            while (node.board.getStatus()){
+                BoardImpl nextMove = node.board.getRandomLeagalNextMove();
+                Node child = new Node(nextMove);
+                child.parent = node;
+                node.addChild(child);
+                node = child;
+            }
+            return node.board.findWinner().getWinningPiece();
+        }
+
+        private Node expandNodeAndReturnRandom(Node node) {
+            Node result = node;
+            BoardImpl board = node.board;
+            List<BoardImpl> legalMoves = board.getAllLegalNextMoves();
+
+            for (int i = 0; i < legalMoves.size(); i++) {
+                BoardImpl move = legalMoves.get(i);
+                Node child = new Node(move);
+                child.parent = node;
+                node.addChild(child);
+                result = child;
+            }
+            int random = Board.RANDOM_GENERATOR.nextInt(node.children.size());
+            return node.children.get(random);
+        }
+
+        private Node selectPromisingNode(Node tree) {
+            Node node = tree;
+            while (node.children.size() != 0){
+                node = UCT.findBestNodeWithUCT(node);
+            }
+            return node;
+        }
     }
 
+    static class Node {
+        public BoardImpl board;
+
+        public int visits;
+
+        public int score;
+
+        List<Node> children = new ArrayList<>();
+
+        Node parent = null;
+
+        public Node(BoardImpl board) {
+            this.board = board;
+        }
+        Node getChildWithMaxScore() {
+            Node result = children.get(0);
+            for (int i = 1; i < children.size(); i++) {
+                if (children.get(i).score > result.score) {
+                    result = children.get(i);
+                }
+            }
+            return result;
+        }
+        void addChild(Node node) {
+            children.add(node);
+        }
+
+    }
+
+    static class UCT {
+        public static double uctValue(
+                int totalVisit, double nodeWinScore, int nodeVisit) {
+            if (nodeVisit == 0) {
+                return Integer.MAX_VALUE;
+            }
+            return ((double) nodeWinScore / (double) nodeVisit) + 1.41 * Math.sqrt(Math.log(totalVisit) / (double) nodeVisit);
+        }
+
+        public static Node findBestNodeWithUCT(Node node) {
+            int parentVisit = node.visits;
+            return Collections.max(node.children, Comparator.comparing(c -> uctValue(parentVisit, c.score, c.visits)));
+        }
+    }
 
 }

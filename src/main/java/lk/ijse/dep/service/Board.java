@@ -1,18 +1,20 @@
 package lk.ijse.dep.service;
 
+import java.util.Random;
+
 public interface Board {
-    public int NUM_OF_ROWS = 5;
-    public int NUM_OF_COLS = 6;
+    int NUM_OF_ROWS=5;
+    int NUM_OF_COLS=6;
 
+    Random RANDOM_GENERATOR = new Random();
 
-    public BoardUI getBoardUI();
-    public int findNextAvailableSpot (int col);
-    public boolean isLegalMove(int col);
-    public boolean existLegalMove();
-    public void updateMove (int col, Piece move);
-    void updateMove(int col, int row, Piece move);
+    BoardUI getBoardUI();
+    int findNextAvailableSpot(int col);
+    boolean isLegalMove(int col);
+    boolean existLegalMoves();
+    void updateMove(int col,Piece move);
+    void updateMove(int col,int row,Piece move);
+    Winner findWinner();
+    BoardImpl getBoardImpl();
 
-    public Winner findWinner ();
-
-    Piece[][] getPieces();
 }
