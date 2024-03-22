@@ -2,6 +2,9 @@ package lk.ijse.dep.service;
 
 public class Winner {
 
+    // winning piece - winners color
+    // col1 n row1 - 1st piece of sequence
+    // col2 n row2 - last piece of sequence
     private Piece winningPiece;
 
     private int col1;
@@ -21,6 +24,7 @@ public class Winner {
     }
 
     public Winner(Piece winningPiece, int col1, int row1, int col2, int row2){
+        // winning piece and sequence identified
         this.winningPiece = winningPiece;
         this.col1 = col1;
         this.row1 = row1;
@@ -28,6 +32,8 @@ public class Winner {
         this.row2 = row2;
     }
 
+
+    // getters and setters
     public Piece getWinningPiece() {
         return winningPiece;
     }
@@ -70,6 +76,7 @@ public class Winner {
 
     @Override
     public String toString(){
+        // string representation of winner object
         return "Winner{" +
                 "winningPiece=" + winningPiece +
                 ", col1=" + col1 +

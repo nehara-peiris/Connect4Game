@@ -16,7 +16,7 @@ public class BoardImpl implements Board {
     public BoardImpl(BoardUI boardUI) {
         this.boardUI = boardUI;
         this.pieces = new Piece[6][5];
-
+        // make sure the board is empty
         for (int i = 0; i < pieces.length; i++) {
             for (int j = 0; j < pieces[i].length; j++) {
                 pieces[i][j] = Piece.EMPTY;
@@ -25,6 +25,7 @@ public class BoardImpl implements Board {
     }
 
     public BoardImpl(Piece[][] pieces, BoardUI boardUI) {
+        // initialize the board with pieces and board UI
         this.pieces = new Piece[6][5];
         for (int i = 0; i < pieces.length; i++) {
             for (int j = 0; j < pieces[i].length; j++) {
@@ -43,6 +44,8 @@ public class BoardImpl implements Board {
 
     @Override
     public int findNextAvailableSpot(int col) {
+        // find next available spot to place a ball
+        // if the cell is filled then return -1;
         for (int i = 0; i < pieces[col].length; i++) {
             if (pieces[col][i] == Piece.EMPTY){
                 return i;
@@ -53,12 +56,14 @@ public class BoardImpl implements Board {
 
     @Override
     public boolean isLegalMove(int col) {
+        // see whether the placing piece is available
         int index = findNextAvailableSpot(col);
         return index != -1;
     }
 
     @Override
     public boolean existLegalMoves() {
+        // see whether there are any legal moves in the column
         for (int i = 0; i < pieces.length; i++) {
             if (isLegalMove(i)){
                 return true;
@@ -69,20 +74,24 @@ public class BoardImpl implements Board {
 
     @Override
     public void updateMove(int col, Piece move) {
+        // update the latest move
         this.cols = col;
         this.piece = move;
+
+        // find next available spot
         int index = findNextAvailableSpot(col);
         pieces[col][index] = move;
     }
 
     @Override
     public void updateMove(int col, int row, Piece move) {
+        // update the latest move with specified column and row
         pieces[col][row]=move;
     }
 
     @Override
     public Winner findWinner() {
-        //horizontalli check krnwa
+        // checking horizontally
         int count = 0;
         for (int i = 0; i < pieces.length; i++){
             for (int j = 0; j < pieces[i].length-1; j++){
@@ -99,7 +108,7 @@ public class BoardImpl implements Board {
             count = 0;
         }
 
-        //vertically check krnwa
+        // checking vertically
         count = 0;
         for (int i = 0; i < pieces[0].length; i++){
             for (int j = 0; j < pieces.length-1; j++){
@@ -125,13 +134,20 @@ public class BoardImpl implements Board {
 
 
     public List<BoardImpl> getAllLegalNextMoves() {
+        // get the next color
         Piece nextPiece = piece == Piece.BLUE ? Piece.GREEN : Piece.BLUE;
+
+        // create arraylist and store next moves
         List<BoardImpl> nextMoves = new ArrayList<>();
 
+        // iterate the columns and find available spots in column
         for (int i = 0; i < 6; i++) {
             int raw = findNextAvailableSpot(i);
+
+            // if there is available spot then it creates board which is similar to the current board
             if (raw != -1){
                 BoardImpl legalMove = new BoardImpl(this.pieces, this.boardUI);
+                // update the move and the board
                 legalMove.updateMove(i,nextPiece);
                 nextMoves.add(legalMove);
             }
@@ -139,23 +155,29 @@ public class BoardImpl implements Board {
         return  nextMoves;
     }
 
-    public BoardImpl getRandomLeagalNextMove() {
+    public BoardImpl getRandomLegalNextMove() {
+        // get all legal moves
         final List<BoardImpl> legalMoves = getAllLegalNextMoves();
+        // if there is no legal moves return null
         if (legalMoves.isEmpty()) {
             return null;
         }
+
+        // generate random move with legal moves
         final int random = RANDOM_GENERATOR.nextInt(legalMoves.size());
         return legalMoves.get(random);
     }
 
 
     public boolean getStatus(){
+        // if the game out of legal moves retrn false
         if (!existLegalMoves()){
             return false;
         }
 
         Winner winner = findWinner();
 
+        // when there is a winner return false
         if (winner.getWinningPiece() != Piece.EMPTY){
             return false;
         }

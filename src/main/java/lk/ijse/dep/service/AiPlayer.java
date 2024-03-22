@@ -1,7 +1,6 @@
 package lk.ijse.dep.service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class AiPlayer extends Player {
     boolean trueOrFalse;
@@ -14,13 +13,18 @@ public class AiPlayer extends Player {
 
     @Override
     public void movePiece(int col) {
-        Mcts mcts = new Mcts(board.getBoardImpl());
 
+        // initialize MCTS and start to do the best move
+        Mcts mcts = new Mcts(board.getBoardImpl());
         col = mcts.startMCTS();
 
+        // update the move, board and check for a winner
         board.updateMove(col,Piece.GREEN);
         board.getBoardUI().update(col,false);
         Winner winner = board.findWinner();
+
+        // if there is winner then notify
+        // if not check for legal moves and continue or stop the game
         if (winner.getWinningPiece() != Piece.EMPTY){
             board.getBoardUI().notifyWinner(winner);
         } else if (!board.existLegalMoves()){
@@ -28,24 +32,27 @@ public class AiPlayer extends Player {
         }
     }
 
-    static class Mcts {
+    static class Mcts {     // static inner class
         private final BoardImpl board;
-
         private final Piece AiID = Piece.GREEN;
-
         private final Piece HumanID = Piece.BLUE;
-
         public Mcts(BoardImpl board) {
             this.board = board;
         }
 
         public int startMCTS() {
+            // count to get the no of iterations
+            // tree to get the current state
             int count = 0;
             Node tree = new Node(board);
 
+
             while (count < 4000) {
                 count++;
+
+                // select a promising node for exploration
                 Node promisingNode = selectPromisingNode(tree);
+                // assign the selected node for exploration
                 Node selected = promisingNode;
 
                 if (selected.board.getStatus()) {
@@ -83,7 +90,7 @@ public class AiPlayer extends Player {
             }
 
             while (node.board.getStatus()){
-                BoardImpl nextMove = node.board.getRandomLeagalNextMove();
+                BoardImpl nextMove = node.board.getRandomLegalNextMove();
                 Node child = new Node(nextMove);
                 child.parent = node;
                 node.addChild(child);
